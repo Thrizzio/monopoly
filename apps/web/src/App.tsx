@@ -8,7 +8,6 @@ export default function App() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [inGame, setInGame] = useState(false);
 
   const ensure = async () => {
     const name = nickname.trim() || `Player-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -30,7 +29,6 @@ export default function App() {
       await ensure();
       const res = await api.createRoom();
       setRoomCode(res.room.roomCode);
-      setInGame(false);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -42,14 +40,13 @@ export default function App() {
       await ensure();
       await api.joinRoom(code.trim().toUpperCase());
       setRoomCode(code.trim().toUpperCase());
-      setInGame(false);
     } catch (e) {
       setError((e as Error).message);
     }
   };
 
   if (roomCode && playerId) {
-    return <GamePage roomCode={roomCode} playerId={playerId} onLeave={() => { setRoomCode(null); setInGame(false); }} />;
+    return <GamePage roomCode={roomCode} playerId={playerId} onLeave={() => { setRoomCode(null); }} />;
   }
 
   return (
@@ -64,7 +61,7 @@ export default function App() {
       <label className="mt-6 block text-sm font-medium" htmlFor="code">Room code</label>
       <div className="mt-1 flex gap-2">
         <input id="code" className="w-full rounded border px-3 py-2 uppercase" value={code} onChange={(e) => setCode(e.target.value)} maxLength={8} placeholder="ABC123" />
-        <button className="rounded border px-4 py-2" onClick={join}>Join Room</button>
+        <button className="whitespace-nowrap rounded border px-4 py-2" onClick={join}>Join Room</button>
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </main>

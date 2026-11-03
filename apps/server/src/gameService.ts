@@ -23,7 +23,7 @@ export async function applyCommand(playerId: string, cmd: GameCommand) {
   if (!game) throw Object.assign(new Error("no game"), { status: 409 });
 
   const result = await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT id FROM games WHERE id = ${game.id} FOR UPDATE`;
+    await tx.$executeRaw`SELECT id FROM games WHERE id = ${game.id}::uuid FOR UPDATE`;
     const fresh = await tx.game.findUnique({ where: { id: game.id } });
     if (!fresh) throw new Error("game missing");
     if (fresh.stateVersion !== cmd.expectedVersion) {

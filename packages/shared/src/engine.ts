@@ -127,7 +127,6 @@ export function createInitialState(playerIds: string[]): GameState {
 
 const getPlayer = (s: GameState, id: string) => s.players.find((p) => p.id === id);
 const alive = (s: GameState) => s.players.filter((p) => !p.bankrupt);
-const spaceOwner = (s: GameState, idx: number) => s.properties[idx]?.owner ?? null;
 
 function groupMembers(color: string): number[] {
   return BOARD.filter((b) => b.color === color).map((b) => b.index);
@@ -182,25 +181,18 @@ function payDebt(s: GameState, debtor: EnginePlayer, amount: number, creditorId:
 }
 
 function bankrupt(s: GameState, p: EnginePlayer, creditorId: string | null, events: GameEvent[]) {
+  const remainder = p.cash;
   p.bankrupt = true;
   p.cash = 0;
-  for (const [idxStr, st] of Object.entries(s.properties)) {
-    const idx = Number(idxStr);
+  for (const st of Object.values(s.properties)) {
     if (st.owner === p.id) {
       if (creditorId) {
         st.owner = creditorId;
-        const c = getPlayer(s, creditorId);
-        if (c && st.hotel) {
-          c.jailCards += 0;
-        }
       } else {
         st.owner = null;
         st.houses = 0;
         st.hotel = false;
         st.mortgaged = false;
-      }
-      if (creditorId) {
-        st.mortgaged = st.mortgaged;
       }
       if (st.hotel || st.houses > 0) {
         if (creditorId) {
@@ -216,7 +208,7 @@ function bankrupt(s: GameState, p: EnginePlayer, creditorId: string | null, even
   if (creditorId) {
     const c = getPlayer(s, creditorId);
     if (c) {
-      c.cash += p.cash;
+      c.cash += remainder;
       c.jailCards += p.jailCards;
     }
   }

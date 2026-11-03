@@ -38,7 +38,7 @@ describe("engine basics", () => {
     expect(r.state.players[0].cash).toBe(1500 + 200 - 200);
   });
   it("triple doubles send to jail", () => {
-    let s = createInitialState(["a", "b"]);
+    const s = createInitialState(["a", "b"]);
     s.players[0].position = 0;
     // force two doubles first by direct rolls on safe spots is complex; simulate via doublesCount
     s.doublesCount = 2;
@@ -48,14 +48,7 @@ describe("engine basics", () => {
     expect(r.state.players[0].position).toBe(10);
   });
   it("buy then rent transfers cash", () => {
-    let s = createInitialState(["a", "b"]);
-    s.players[0].position = 1;
-    // land via roll of 1 from 0
-    let r = processAction(s, { kind: "roll", playerId: "a", d1: 1, d2: 0 === 0 ? 1 : 1 });
-    // d1=1,d2=1 would be doubles; use 1+? need sum 1 impossible; drive manually:
-    void r;
-    s = createInitialState(["a", "b"]);
-    s.players[0].position = 1;
+    const s = createInitialState(["a", "b"]);
     // simulate landing by rolling from 39 with 2
     s.players[0].position = 39;
     const r2 = processAction(s, { kind: "roll", playerId: "a", d1: 1, d2: 1 });
@@ -64,7 +57,7 @@ describe("engine basics", () => {
     expect(bought.error).toBeUndefined();
     expect(bought.state.properties[1].owner).toBe("a");
     // player b lands on 1
-    let sb = bought.state;
+    const sb = bought.state;
     sb.currentPlayerId = "b";
     sb.phase = "roll";
     sb.players[1].position = 39;
@@ -90,7 +83,7 @@ describe("engine basics", () => {
     expect(rentFor(s, 1, 0)).toBe(4);
   });
   it("mortgage blocks rent and unmortgage charges interest", () => {
-    let s = createInitialState(["a", "b"]);
+    const s = createInitialState(["a", "b"]);
     s.properties[1].owner = "a";
     s.properties[3].owner = "a";
     const m = processAction(s, { kind: "mortgage", playerId: "a", space: 1 });
@@ -102,22 +95,22 @@ describe("engine basics", () => {
     expect(u.state.players[0].cash).toBe(cashAfter - 33);
   });
   it("jail fine releases and jail doubles work", () => {
-    let s = createInitialState(["a", "b"]);
+    const s = createInitialState(["a", "b"]);
     s.players[0].inJail = true;
     const f = processAction(s, { kind: "payJailFine", playerId: "a" });
     expect(f.error).toBeUndefined();
     expect(f.state.players[0].inJail).toBe(false);
-    let s2 = createInitialState(["a", "b"]);
+    const s2 = createInitialState(["a", "b"]);
     s2.players[0].inJail = true;
     const d = processAction(s2, { kind: "jailDoubles", playerId: "a", d1: 4, d2: 4 });
     expect(d.state.players[0].inJail).toBe(false);
   });
   it("auction awards highest bidder", () => {
-    let s = createInitialState(["a", "b"]);
-    s.currentPlayerId = "a";
-    s.phase = "buy-or-auction";
-    s.pendingSpace = 1;
-    s = processAction(s, { kind: "decline", playerId: "a" }).state;
+    const s0 = createInitialState(["a", "b"]);
+    s0.currentPlayerId = "a";
+    s0.phase = "buy-or-auction";
+    s0.pendingSpace = 1;
+    let s = processAction(s0, { kind: "decline", playerId: "a" }).state;
     s = processAction(s, { kind: "placeBid", playerId: "a", amount: 10 }).state;
     s = processAction(s, { kind: "placeBid", playerId: "b", amount: 50 }).state;
     const done = processAction(s, { kind: "endAuction", playerId: "a" });
@@ -129,7 +122,7 @@ describe("engine basics", () => {
     expect(r.error).toBeDefined();
   });
   it("bankruptcy to creditor transfers assets and ends game", () => {
-    let s = createInitialState(["a", "b"]);
+    const s = createInitialState(["a", "b"]);
     s.properties[3].owner = "b";
     s.players[0].cash = 1;
     s.players[0].position = 1;

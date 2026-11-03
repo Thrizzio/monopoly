@@ -1,4 +1,9 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const __here = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__here, "..", "..", ".env") });
+dotenv.config({ path: path.join(__here, "..", "..", "..", ".env") });
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
