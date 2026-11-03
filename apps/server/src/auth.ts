@@ -59,7 +59,7 @@ export function setSessionCookie(res: Response, token: string, expiresAt: Date, 
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     secure,
-    sameSite: "lax",
+    sameSite: secure ? "none" : "lax",
     path: "/",
     expires: expiresAt,
   });
