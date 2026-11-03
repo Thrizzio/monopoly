@@ -3,7 +3,7 @@ services:
     name: monopolisting-server
     runtime: node
     plan: starter
-    buildCommand: npm ci && npm run build --workspace=@monopolisting/shared && npm run build --workspace=@monopolisting/server && npx prisma migrate deploy --schema apps/server/prisma/schema.prisma
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build --workspace=@monopolisting/shared && npm run build --workspace=@monopolisting/server && npx prisma migrate deploy --schema apps/server/prisma/schema.prisma
     startCommand: npm run start --workspace=@monopolisting/server
     healthCheckPath: /api/health
     envVars:

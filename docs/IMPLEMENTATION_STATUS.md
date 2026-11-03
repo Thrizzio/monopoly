@@ -43,6 +43,10 @@
 - `npm run lint` — clean. `tsc` + `vite build` pass for server and web.
 - Visual: home page screenshotted at desktop + tablet widths; lobby
   layout verified in E2E DOM snapshot (header, seats, players, chat).
+- Deploy builds exclude tests: `tsc -p tsconfig.build.json` programs
+  contain zero `*.test.ts` files (verified with `--listFiles`), so prod
+  installs without devDependencies build cleanly; Render runs
+  `NPM_CONFIG_PRODUCTION=false npm ci` to guarantee build tools.
 - Dice authority verified live: a second backend on another port running
   with `NODE_ENV=production` ignored client-sent (6,6) and rolled its own
   dice; the same run proved cross-instance recovery (room created on one
