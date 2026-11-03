@@ -4,3 +4,6 @@ export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 5;
 export const BOARD_SPACES = 40;
 export const SESSION_DAYS = 30;
+export const JAIL_FINE = 50;
+export const INCOME_TAX_AMOUNT = 200;
+export const LUXURY_TAX_AMOUNT = 100;
