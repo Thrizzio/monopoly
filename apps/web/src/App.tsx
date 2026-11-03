@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { GamePage } from "./pages/GamePage.js";
+
+const LAST_ROOM_KEY = "mp_last_room";
 
 export default function App() {
   const [nickname, setNickname] = useState("");
@@ -29,6 +31,7 @@ export default function App() {
       await ensure();
       const res = await api.createRoom();
       setRoomCode(res.room.roomCode);
+      try { localStorage.setItem(LAST_ROOM_KEY, res.room.roomCode); } catch { /* ignore */ }
     } catch (e) {
       setError((e as Error).message);
     }
@@ -40,13 +43,33 @@ export default function App() {
       await ensure();
       await api.joinRoom(code.trim().toUpperCase());
       setRoomCode(code.trim().toUpperCase());
+      try { localStorage.setItem(LAST_ROOM_KEY, code.trim().toUpperCase()); } catch { /* ignore */ }
     } catch (e) {
       setError((e as Error).message);
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = localStorage.getItem(LAST_ROOM_KEY);
+        if (!stored || roomCode) return;
+        const me = await api.ensureIdentity("ReturningPlayer");
+        if (cancelled) return;
+        const info = await api.roomInfo(stored);
+        if (cancelled) return;
+        setPlayerId(me.player.id);
+        setRoomCode(info.room.roomCode);
+      } catch {
+        // stay on home page; user can create or join manually
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   if (roomCode && playerId) {
-    return <GamePage roomCode={roomCode} playerId={playerId} onLeave={() => { setRoomCode(null); }} />;
+    return <GamePage roomCode={roomCode} playerId={playerId} onLeave={() => { setRoomCode(null); try { localStorage.removeItem(LAST_ROOM_KEY); } catch { /* ignore */ } }} />;
   }
 
   return (
