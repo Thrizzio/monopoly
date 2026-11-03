@@ -160,6 +160,7 @@ test("authoritative game flow: roll, buy, duplicate rejected, rejoin recovers", 
   const rDup = await dup;
   expect(rDup.duplicate).toBe(true);
   expect(rDup.stateVersion).toBe(1);
+  await expect.poll(async () => (await apiAuthed(a.cookie, `/api/rooms/${code}/game`)).data.game.stateVersion, { timeout: 15_000 }).toBe(1);
 
   // Stale versions are rejected, never applied.
   const rejected = once<{ error: string }>(sockA, "game:actionRejected");

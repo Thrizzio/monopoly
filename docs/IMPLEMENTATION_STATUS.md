@@ -34,8 +34,12 @@
 - `npm run test --workspace=@monopolisting/shared` — 15 passed.
 - `npm run test --workspace=@monopolisting/server` — 2 passed (incl.
   Neon integration: 6-seat reject, idempotent command, chat escaping).
-- `npx playwright test` — home, 2-context join, 5-player/sixth-reject,
-  visual smoke all pass against live backend + web dev server.
+- `npx playwright test` — 14 pass against live backend + web dev server:
+  home, 2-context join, 5-player/sixth-reject, 40-space board render,
+  realtime chat + refresh persistence, roll/buy/duplicate/rejoin, plus
+  server-authoritative auction/trade/mortgage/rent, triple-doubles jail,
+  bankruptcy game-over, concurrent-command serialization, and
+  disconnect/reconnect continuity from Postgres snapshots.
 - `npm run lint` — clean. `tsc` + `vite build` pass for server and web.
 - Visual: home page screenshotted at desktop + tablet widths; lobby
   layout verified in E2E DOM snapshot (header, seats, players, chat).
