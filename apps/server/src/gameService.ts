@@ -37,7 +37,10 @@ export async function applyCommand(playerId: string, cmd: GameCommand) {
     let action = cmd.action;
     if ((action as { kind: string }).kind === "roll" || (action as { kind: string }).kind === "jailDoubles") {
       const a = action as { kind: string; d1?: number; d2?: number; playerId: string };
-      if (!a.d1 || !a.d2) {
+      // Dice are always rolled server-side in production so clients can never
+      // choose outcomes. Client-supplied dice are honored only outside
+      // production to keep automated tests deterministic.
+      if (process.env.NODE_ENV === "production" || !a.d1 || !a.d2) {
         const dice = rollDice();
         action = { ...a, d1: dice.d1, d2: dice.d2 } as GameAction;
       }

@@ -43,3 +43,8 @@
 - `npm run lint` — clean. `tsc` + `vite build` pass for server and web.
 - Visual: home page screenshotted at desktop + tablet widths; lobby
   layout verified in E2E DOM snapshot (header, seats, players, chat).
+- Dice authority verified live: a second backend on another port running
+  with `NODE_ENV=production` ignored client-sent (6,6) and rolled its own
+  dice; the same run proved cross-instance recovery (room created on one
+  instance fully served by the other — Postgres is the source of truth,
+  no in-memory state).

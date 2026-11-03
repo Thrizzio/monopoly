@@ -29,6 +29,12 @@
 - Bankruptcy to bank: properties return unowned; no immediate re-auction
   (auction happens on next landing decline or host-triggered future phase).
 - No house rule: no Free Parking jackpot, no double-GO bonus, no loans.
+- Dice authority: the backend rolls all dice with `crypto.randomInt` in
+  production and ignores client-supplied values, so outcomes can never be
+  chosen by a modified client. Client-supplied dice are honored only when
+  `NODE_ENV` is not `production`, purely to keep automated tests
+  deterministic; the engine itself always accepts injected dice for unit
+  tests.
 
 ## Visual-asset policy
 
