@@ -460,14 +460,14 @@ export function processAction(prev: GameState, action: GameAction): GameResult {
       resolveLanding(s, p, d1 + d2, events);
       if (p.bankrupt) {
         const nxt = nextAlive(s, p.id);
-        if (nxt && s.phase !== "gameover") {
+        if (nxt && (s.phase as string) !== "gameover") {
           s.currentPlayerId = nxt.id;
           s.phase = "roll";
           s.doublesCount = 0;
         }
         return { state: s, events };
       }
-      if (s.phase === "end" && d1 === d2 && !p.inJail) {
+      if ((s.phase as string) === "end" && d1 === d2 && !p.inJail) {
         s.phase = "roll";
         events.push({ type: "extra-roll", playerId: p.id });
       }
