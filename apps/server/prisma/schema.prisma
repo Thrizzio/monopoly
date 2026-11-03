@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model Player {
+  id         String        @id @default(uuid()) @db.Uuid
+  nickname   String        @db.VarChar(20)
+  createdAt  DateTime      @default(now())
+  lastSeenAt DateTime      @default(now())
+  sessions   Session[]
+  memberships RoomPlayer[]
+  chatMessages ChatMessage[]
+
+  @@map("players")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  playerId  String   @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Room {
+  id           String      @id @default(uuid()) @db.Uuid
+  roomCode     String      @unique
+  hostPlayerId String      @db.Uuid
+  status       RoomStatus  @default(WAITING)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  members      RoomPlayer[]
+  games        Game[]
+  chatMessages ChatMessage[]
+
+  @@map("rooms")
+}
+
+model RoomPlayer {
+  roomId      String   @db.Uuid
+  playerId    String   @db.Uuid
+  seatNumber  Int
+  isConnected Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, playerId])
+  @@unique([roomId, seatNumber])
+  @@map("room_players")
+}
+
+model Game {
+  id                  String     @id @default(uuid()) @db.Uuid
+  roomId              String     @db.Uuid
+  status              GameStatus @default(IN_PROGRESS)
+  currentTurnPlayerId String?    @db.Uuid
+  currentState        Json       @default("{}")
+  stateVersion        Int        @default(0)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  completedAt         DateTime?
+  room                Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  events              GameEvent[]
+
+  @@map("games")
+}
+
+model GameEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  gameId        String   @db.Uuid
+  sequenceNumber Int
+  actorPlayerId String?  @db.Uuid
+  eventType     String
+  payload       Json     @default("{}")
+  createdAt     DateTime @default(now())
+  game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, sequenceNumber])
+  @@map("game_events")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @db.Uuid
+  playerId  String   @db.Uuid
+  message   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
