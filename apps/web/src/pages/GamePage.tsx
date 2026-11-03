@@ -4,6 +4,70 @@ import { connectSocket } from "../socket.js";
 import { Board } from "../components/Board.js";
 import type { GameState } from "@monopolisting/shared";
 
+function PropertyActions({ game, playerId, send }: { game: GameState | null; playerId: string; send: (event: string, action: object) => void }) {
+  const [space, setSpace] = useState("1");
+  if (!game) return null;
+  const idx = Number(space);
+  return (
+    <div className="mt-3 rounded border p-3" aria-label="Property actions">
+      <h2 className="font-semibold">Property actions</h2>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <label className="text-sm" htmlFor="space">Space</label>
+        <input id="space" className="w-20 rounded border px-2 py-1" value={space} onChange={(e) => setSpace(e.target.value)} inputMode="numeric" />
+        <button className="rounded border px-3 py-1" onClick={() => send("game:buildHouse", { kind: "buildHouse", space: idx })}>Build</button>
+        <button className="rounded border px-3 py-1" onClick={() => send("game:sellBuilding", { kind: "sellBuilding", space: idx })}>Sell building</button>
+        <button className="rounded border px-3 py-1" onClick={() => send("game:mortgageProperty", { kind: "mortgage", space: idx })}>Mortgage</button>
+        <button className="rounded border px-3 py-1" onClick={() => send("game:unmortgageProperty", { kind: "unmortgage", space: idx })}>Unmortgage</button>
+        <button className="rounded border px-3 py-1" onClick={() => send("game:placeBid", { kind: "placeBid", amount: 10 })}>Bid $10</button>
+        <button className="rounded border px-3 py-1" onClick={() => send("game:endAuction", { kind: "endAuction" })}>End auction</button>
+      </div>
+      <p className="mt-1 text-xs text-stone-600">Builds and mortgages follow the even-building and full-group rules; the server validates everything.</p>
+    </div>
+  );
+  void playerId;
+}
+
+function TradePanel({ game, playerId, members, send }: { game: GameState | null; playerId: string; members: { playerId: string; player: { nickname: string } }[]; send: (event: string, action: object) => void }) {
+  const [to, setTo] = useState("");
+  const [giveSpace, setGiveSpace] = useState("");
+  const [wantSpace, setWantSpace] = useState("");
+  if (!game) return null;
+  const others = members.filter((m) => m.playerId !== playerId);
+  const pending = (game.trades ?? []).filter((t) => t.status === "pending" && (t.to === playerId || t.from === playerId));
+  return (
+    <div className="mt-3 rounded border p-3" aria-label="Trading">
+      <h2 className="font-semibold">Trading</h2>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <select className="rounded border px-2 py-1" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Trade with">
+          <option value="">With…</option>
+          {others.map((m) => <option key={m.playerId} value={m.playerId}>{m.player.nickname}</option>)}
+        </select>
+        <input className="w-24 rounded border px-2 py-1" value={giveSpace} onChange={(e) => setGiveSpace(e.target.value)} placeholder="Give #" aria-label="Offer space" inputMode="numeric" />
+        <input className="w-24 rounded border px-2 py-1" value={wantSpace} onChange={(e) => setWantSpace(e.target.value)} placeholder="Want #" aria-label="Request space" inputMode="numeric" />
+        <button className="rounded bg-emerald-800 px-3 py-1 text-white" onClick={() => {
+          if (!to) return;
+          send("game:proposeTrade", { kind: "proposeTrade", trade: { to, offerCash: 0, requestCash: 0, offerSpaces: giveSpace === "" ? [] : [Number(giveSpace)], requestSpaces: wantSpace === "" ? [] : [Number(wantSpace)], offerJailCards: 0, requestJailCards: 0 } });
+        }}>Propose</button>
+      </div>
+      <ul className="mt-2 space-y-1 text-sm">
+        {pending.map((t) => (
+          <li key={t.id} className="flex items-center gap-2">
+            <span>{t.from === playerId ? "You offered" : "Offer from"} {members.find((m) => m.playerId === t.from)?.player.nickname}: gives [{t.offerSpaces.join(",")}] for [{t.requestSpaces.join(",")}]</span>
+            {t.to === playerId && (
+              <>
+                <button className="rounded border px-2 py-0.5" onClick={() => send("game:acceptTrade", { kind: "acceptTrade", tradeId: t.id })}>Accept</button>
+                <button className="rounded border px-2 py-0.5" onClick={() => send("game:rejectTrade", { kind: "rejectTrade", tradeId: t.id })}>Reject</button>
+              </>
+            )}
+          </li>
+        ))}
+        {pending.length === 0 && <li className="text-stone-500">No pending trades.</li>}
+      </ul>
+      <p className="mt-1 text-xs text-stone-600">Both sides accept; the server revalidates ownership and funds at execution.</p>
+    </div>
+  );
+}
+
 interface Member { playerId: string; seatNumber: number; player: { nickname: string } }
 
 export function GamePage({ roomCode, playerId, onLeave }: { roomCode: string; playerId: string; onLeave: () => void }) {
@@ -51,6 +115,8 @@ export function GamePage({ roomCode, playerId, onLeave }: { roomCode: string; pl
           setGame(p.state);
           setVersion(p.stateVersion);
           for (const e of p.events ?? []) pushLog(e.type);
+          // Keep seat/nickname list fresh when players join after we loaded.
+          api.roomInfo(roomCode).then((i) => { if (alive) setRoom(i.room); }).catch(() => undefined);
         });
         s.on("game:actionRejected", (p: { error: string }) => setError(p.error));
         s.on("chat:messageReceived", (m: { id: string; nickname?: string; message: string; player?: { nickname: string } }) => {
@@ -83,6 +149,11 @@ export function GamePage({ roomCode, playerId, onLeave }: { roomCode: string; pl
   return (
     <main className="mx-auto max-w-7xl gap-4 p-4 lg:grid lg:grid-cols-[1fr_300px]">
       <section>
+        {game?.phase === "gameover" && game.winnerId && (
+          <p role="status" className="mb-2 rounded bg-amber-200 px-3 py-2 font-semibold text-emerald-950">
+            Game over — winner: {room?.members.find((m) => m.playerId === game.winnerId)?.player.nickname ?? game.winnerId.slice(0, 4)}
+          </p>
+        )}
         <header className="mb-2 flex items-center justify-between">
           <h1 className="text-xl font-bold text-emerald-950">Room {roomCode} {isMyTurn && <span className="ml-2 rounded bg-amber-400 px-2 py-0.5 text-sm">Your turn</span>}</h1>
           <button className="rounded border px-3 py-1" onClick={async () => { await api.leaveRoom(roomCode).catch(() => undefined); onLeave(); }}>Leave</button>
@@ -93,7 +164,7 @@ export function GamePage({ roomCode, playerId, onLeave }: { roomCode: string; pl
           <div className="rounded border p-6">
             <p>Waiting for host to start… Seats: {(room?.members ?? []).map((m) => m.player.nickname).join(", ")}</p>
             <div className="mt-3 flex gap-2">
-              <button className="rounded bg-emerald-800 px-4 py-2 text-white" onClick={async () => { try { await api.startGame(roomCode); const s = await api.gameSnapshot(roomCode); setGame(s.game.currentState); setVersion(s.game.stateVersion); } catch (e) { setError((e as Error).message); } }}>Start game (host, 2–5 players)</button>
+              <button className="rounded bg-emerald-800 px-4 py-2 text-white" onClick={async () => { try { await api.startGame(roomCode); const s = await api.gameSnapshot(roomCode); setGame(s.game.currentState); setVersion(s.game.stateVersion); const i = await api.roomInfo(roomCode); setRoom(i.room); } catch (e) { setError((e as Error).message); } }}>Start game (host, 2–5 players)</button>
               <button className="rounded border px-4 py-2" onClick={async () => { const i = await api.roomInfo(roomCode); setRoom(i.room); }}>Refresh lobby</button>
             </div>
           </div>
@@ -111,6 +182,8 @@ export function GamePage({ roomCode, playerId, onLeave }: { roomCode: string; pl
         <ul className="mt-3 max-h-32 overflow-auto rounded border bg-stone-50 p-2 text-xs" aria-label="Game events">
           {log.map((l, i) => <li key={i}>{l}</li>)}
         </ul>
+        <PropertyActions game={game} playerId={playerId} send={send} />
+        <TradePanel game={game} playerId={playerId} members={room?.members ?? []} send={send} />
       </section>
       <aside className="mt-4 lg:mt-0">
         <section className="rounded border p-3" aria-label="Players">

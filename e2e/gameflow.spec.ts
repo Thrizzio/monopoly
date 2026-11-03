@@ -1,6 +1,34 @@
 import { expect, test, type Browser } from "@playwright/test";
 import { io, type Socket } from "socket.io-client";
 
+test("started game renders the 40-space board for both players", async ({ browser }: { browser: Browser }) => {
+  const ctxA = await browser.newContext();
+  const ctxB = await browser.newContext();
+  const pageA = await ctxA.newPage();
+  const pageB = await ctxB.newPage();
+
+  await pageA.goto("/");
+  await pageA.getByLabel("Nickname").fill("BoardAlice");
+  await pageA.getByRole("button", { name: "Create Room" }).click();
+  await expect(pageA.locator("h1", { hasText: "Room " })).toBeVisible({ timeout: 15_000 });
+  const code = ((await pageA.locator("h1").first().textContent()) ?? "").match(/Room ([A-Z2-9]{6,8})/)?.[1];
+
+  await pageB.goto("/");
+  await pageB.getByLabel("Nickname").fill("BoardBob");
+  await pageB.getByLabel("Room code").fill(code!);
+  await pageB.getByRole("button", { name: "Join Room" }).click();
+  await expect(pageB.locator("h1", { hasText: `Room ${code}` })).toBeVisible({ timeout: 15_000 });
+
+  await pageA.getByRole("button", { name: /Start game/ }).click();
+  await expect(pageA.getByLabel("Monopoly board")).toBeVisible({ timeout: 15_000 });
+  await expect(pageA.locator("[data-space]")).toHaveCount(40);
+  await expect(pageB.getByLabel("Monopoly board")).toBeVisible({ timeout: 15_000 });
+  await pageA.screenshot({ path: "test-results/visual-board.png" });
+
+  await ctxA.close();
+  await ctxB.close();
+});
+
 const API = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:3000";
 
 test("chat is realtime and persists across refresh", async ({ browser }: { browser: Browser }) => {
